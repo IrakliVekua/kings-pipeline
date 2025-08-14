@@ -6,6 +6,7 @@ const BOARD_ID = 1;
 export default function KingsPipelineKanban() {
   const [board, setBoard] = useState({ stages: [], columns: {} });
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchBoard() {
@@ -13,12 +14,18 @@ export default function KingsPipelineKanban() {
         const data = await loadBoard(BOARD_ID);
         setBoard(data);
       } catch (err) {
-        setError('Failed to load board');
+        setError(err.message);
         console.error(err);
+      } finally {
+        setLoading(false);
       }
     }
     fetchBoard();
   }, []);
+
+  if (loading) {
+    return <p className="p-4">Loading board...</p>;
+  }
 
   if (error) {
     return <p className="text-red-600 p-4">{error}</p>;

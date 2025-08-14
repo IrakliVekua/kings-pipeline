@@ -1,12 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const sb = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const sb =
+  SUPABASE_URL && SUPABASE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+function requireClient() {
+  if (!sb) {
+    throw new Error('Supabase client not configured');
+  }
+}
 
 // Load stages & cards from Supabase into the shape the UI expects
 export async function loadBoard(boardId) {
+  requireClient();
   const [{ data: stages }, { data: cards }] = await Promise.all([
     sb.from('stages').select('*').eq('board_id', boardId).order('sort'),
     sb.from('cards').select('*').eq('board_id', boardId),
@@ -39,6 +49,7 @@ export async function loadBoard(boardId) {
 
 // Save the order + names + win% back to DB
 export async function saveStageOrder(boardId, stages) {
+  requireClient();
   const updates = stages.map((s, i) => ({
     id: s.id,
     board_id: boardId,
@@ -52,6 +63,7 @@ export async function saveStageOrder(boardId, stages) {
 
 // Insert or update one card (country)
 export async function upsertCard(boardId, stageId, card) {
+  requireClient();
   const row = {
     id: card.id,
     board_id: boardId,
@@ -70,6 +82,7 @@ export async function upsertCard(boardId, stageId, card) {
 
 // Update card fields (not the stage)
 export async function updateCardRow(card) {
+  requireClient();
   await sb.from('cards')
     .update({
       country: card.country,
@@ -86,10 +99,12 @@ export async function updateCardRow(card) {
 
 // Move card to another stage
 export async function moveCard(cardId, toStageId) {
+  requireClient();
   await sb.from('cards').update({ stage_id: toStageId }).eq('id', cardId);
 }
 
 // Delete card
 export async function deleteCard(cardId) {
+  requireClient();
   await sb.from('cards').delete().eq('id', cardId);
 }
